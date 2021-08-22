@@ -3,18 +3,13 @@
  * Prints "hello world!"
  */
 
-// Use the following line if you have a Leonardo or MKR1000
-//#define USE_USBCON
-
-#include <Arduino.h>
 #include <ros.h>
 #include <std_msgs/String.h>
 
-ros::NodeHandle nh;
-
+ros::NodeHandle  nh;
 
 std_msgs::String str_msg;
-ros::Publisher chatter("chatter", &str_msg);   /*chatter("chatter", &str_msg);*/
+ros::Publisher chatter("chatter", &str_msg);
 
 char hello[13] = "hello world!";
 
