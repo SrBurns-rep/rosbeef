@@ -4,7 +4,7 @@ void rosbeef::runTaskTimerCore()
 {
     unsigned long currentMillis = millis();
 
-    if((currentTask >= MAX_TASK_COUNT) && (currentTask >= taskCount))currentTask = 0;
+    if((currentTask >= MAX_TASK_COUNT) || (currentTask >= taskCount))currentTask = 0;
 
     if(currentMillis - tasks[currentTask].timer >= tasks[currentTask].interval){
         SETBIT(flags, currentTask);
