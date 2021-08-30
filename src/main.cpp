@@ -1,56 +1,58 @@
 /*
- * rosserial Publisher Example
- * Prints "hello world!"
+ * rosserial Subscriber Example
+ * Blinks an LED on callback
  */
 
-// Use the following line if you have a Leonardo or MKR1000
-//#define USE_USBCON
+#include <ros.h>
+#include <std_msgs/Empty.h>
+#include <std_msgs/String.h>
 
-#include <rosbeef.h>
-
-#define MESSAGE_INTERVAL 1000
+unsigned long tspin;
+bool lock = true;
+char msg[32] = {0};
 
 ros::NodeHandle nh;
 std_msgs::String str_msg;
-ros::Publisher chatter("chatter", &str_msg);   /*chatter("chatter", &str_msg);*/
+ros::Publisher chatter("chatter", &str_msg); 
 
-char msg[] = "Hello world!";
-
-void sendMessage();
-void toggleLED();
-
-task_t tasks[] = {{0, 1000, sendMessage}, {0, 100, toggleLED}};
-
-rosbeef taskManager(sizeof(tasks) / sizeof(task_t));
-
-SIGNAL(TIMER0_COMPA_vect) 
-{
-	taskManager.runTaskTimerCore();
+void messageCb( const std_msgs::Empty& toggle_msg){
+    digitalWrite(LED_BUILTIN, !digitalRead(13));   // blink the led
+    lock = false;
 }
+
+ros::Subscriber<std_msgs::Empty> sub("toggle_led", &messageCb );
 
 void setup()
 {
-	taskManager.rosbeefInit();
-	pinMode(LED_BUILTIN, OUTPUT);
-
-	nh.initNode();
-	nh.advertise(chatter);
-
+    pinMode(LED_BUILTIN, OUTPUT);
+    nh.initNode();
+    nh.subscribe(sub);
+    nh.advertise(chatter);
 }
 
 void loop()
 {
-	taskManager.runTasks();
-}
+    static unsigned long t0 = 0;
+    static unsigned long t1 = 0;
+    static unsigned long timer = 0;
+    
+    if(millis() - timer >= 1000){
+        sprintf(msg, "Time result (off): %lu", tspin);
+        str_msg.data = msg;
+	    chatter.publish( &str_msg );
+        timer = millis();
+    }
 
-void sendMessage()
-{
-	str_msg.data = msg;
-	chatter.publish( &str_msg );
-	nh.spinOnce();
-}
+    if(!lock){
+        sprintf(msg, "Time to spin result: %lu", tspin);
+        str_msg.data = msg;
+	    chatter.publish( &str_msg );
+        lock = true;
+    }
 
-void toggleLED()
-{
-	digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+    t0 = micros();
+    nh.spinOnce();
+    t1 = micros();
+    tspin = t1 - t0;
+    delay(1);
 }

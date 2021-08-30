@@ -30,8 +30,6 @@ class rosbeef
     uint8_t getTaskInProcess();
     void runTaskTimerCore();
 
-    uint8_t taskCount;
-
     rosbeef(uint8_t numTasks){
         taskCount = numTasks;
     }
@@ -39,6 +37,7 @@ class rosbeef
     private:
     volatile uint64_t flags;
     volatile uint8_t currentTask;
+    uint8_t taskCount;
 };
 
 #endif
