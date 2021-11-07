@@ -43,12 +43,14 @@ void loop()
 	taskManager.runTasks();
 }
 
-void sendMessage(){
+void sendMessage()
+{
 	str_msg.data = msg;
 	chatter.publish( &str_msg );
 	nh.spinOnce();
 }
 
-void toggleLED(){
+void toggleLED()
+{
 	digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
 }
