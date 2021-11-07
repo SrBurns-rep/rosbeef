@@ -19,9 +19,15 @@ char msg[] = "Hello world!";
 void sendMessage();
 void toggleLED();
 
+// Create tasks
+
 task_t tasks[] = {{0, 1000, sendMessage}, {0, 100, toggleLED}};
 
+// Initialize Task Manager
+
 rosbeef taskManager(sizeof(tasks) / sizeof(task_t));
+
+// Add signal vector for time interrupt
 
 SIGNAL(TIMER0_COMPA_vect) 
 {
@@ -42,14 +48,14 @@ void loop()
 {
 	taskManager.runTasks();
 }
-
+	// send message task
 void sendMessage()
 {
 	str_msg.data = msg;
 	chatter.publish( &str_msg );
 	nh.spinOnce();
 }
-
+	// toggle led task
 void toggleLED()
 {
 	digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
