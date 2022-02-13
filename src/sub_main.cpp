@@ -37,14 +37,14 @@ void loop()
     static unsigned long timer = 0;
     
     if(millis() - timer >= 1000){
-        sprintf(msg, "Time result (off): %lu", tspin);
+        sprintf(msg, "Time result (off): %luus", tspin);
         str_msg.data = msg;
 	    chatter.publish( &str_msg );
         timer = millis();
     }
 
     if(!lock){
-        sprintf(msg, "Time to spin result: %lu", tspin);
+        sprintf(msg, "Time to spin result: %luus", tspin);
         str_msg.data = msg;
 	    chatter.publish( &str_msg );
         lock = true;
@@ -54,5 +54,4 @@ void loop()
     nh.spinOnce();
     t1 = micros();
     tspin = t1 - t0;
-    delay(1);
 }
