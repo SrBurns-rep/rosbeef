@@ -1,8 +1,8 @@
 /*********************************************************************
- * @file main.cpp
- * @author Caio Burns Lessa
- * @date 2022/03/11
- * @brief Arduino main process source file
+ * @file    main.cpp
+ * @author  SrBurns <caiobl.25@gmail.com>
+ * @date    2022/03/11
+ * @brief   Arduino main process source file
 *********************************************************************/
 // doxygen style header comment.
 
@@ -29,10 +29,10 @@
 #define M4B 6
 
     // Motor pwm pins position
-#define pinMotor1PWM 11
-#define pinMotor2PWM 3
-#define pinMotor3PWM 5
-#define pinMotor4PWM 6
+#define M1PWM 11
+#define M2PWM 3
+#define M3PWM 5
+#define M4PWM 6
 
     // Motor direction masks        CC E
 #define TURN_LEFT   0b10010101  //  10 0
@@ -53,12 +53,12 @@
 
 // Start of function prototypes
 /**
- * @fn void runMotorSM()
- * @brief executes the motor state machine
+ * @fn void timeoutMotors()
+ * @brief turn off motors after a set time interval hass passed
  * @param null
  * @return null
 */
-void runMotorSM();
+void timeoutMotors();
 
 /**
  * @fn void sendMotorResponse()
@@ -67,14 +67,6 @@ void runMotorSM();
  * @return void
 */
 void sendMotorResponse();
-
-/**
- * @fn void getMotorParams()
- * @brief decodes the message comming from the computer
- * @param void
- * @return void
-*/
-void getMotorParams();
 
 /**
  * @fn motorShieldWrite(byte ctrlByte)
@@ -94,9 +86,8 @@ void motorCallback(const std_msgs::UInt32& input);
 // Task array
 task_t tasks[] = 
 {
-    {0, 100, runMotorSM},
-    {0, 50, sendMotorResponse},
-    {0, 25, getMotorParams}
+    {0, MIN_INTERVAL, timeoutMotors},
+    {0, 200, sendMotorResponse}
 };
 
 // control messaging
@@ -114,6 +105,10 @@ rosbeef taskManager(sizeof(tasks)/sizeof(*tasks));
 u32 motorTimer[4] = {0};
 u8 motorIntervals[4] = {0};
 
+const u8 channelA[] = {M1A, M2A, M3A, M4A};
+const u8 channelB[] = {M1B, M2B, M3B, M4B};
+char buffer[256] = {0};
+
 // Timer interrupt vector function (Needed for the task system!)
 SIGNAL(TIMER0_COMPA_vect)
 {
@@ -122,23 +117,54 @@ SIGNAL(TIMER0_COMPA_vect)
 
 // Functions
 
-void runMotorSM()
+void timeoutMotors()
 {
+    static byte motorCtrl = 0;
+    bool hasTimeout = false;
+    uint32_t current = millis();
+    for(int i = 0; i < 4; i++){
 
+        if(motorTimer[i] > current) motorTimer[i] = 0; // overflow occurred
+
+        if((u32)(current - motorTimer[i]) >= (u32)(MIN_INTERVAL * motorIntervals[i])){
+            bitClear(motorCtrl, channelA[i]);
+            bitClear(motorCtrl, channelB[i]);
+            motorTimer[i] = current;
+            hasTimeout = true;
+        }
+    }
+    if(hasTimeout){
+        motorShieldWrite(motorCtrl);
+    }
 }
 
 void sendMotorResponse()
 {
+    const char* b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                      "abcdefghijklmnopqrstuvwxyz"
+                      "0123456789+/";
+    const char pdn = '=';
 
-}
+    if(gotCtrlMessage){
+        gotCtrlMessage = false;
 
-void getMotorParams()
-{
+        u32 timestamp = millis();
+        int i = 0;
 
+        /*for(i; i < 32; i+=6){
+            buffer[i] = b64[(timestamp >> (32 - 6 - i))& 0x3f];
+        }
+        i++;
+        buffer[i] = pdn;
+        for(i; i < )*/
+        // TO-DO
+    }
 }
 
 void motorShieldWrite(byte ctrlByte)
 {
+    // Disable interrupts
+    cli();
     // Set latch low, data pin low and clock pin low to start transmission
     PORTB &= ~(0b00010001); // LATCH and DATA low
     bitClear(PORTD, PD4);
@@ -160,14 +186,16 @@ void motorShieldWrite(byte ctrlByte)
     }
     // set latch high
     bitSet(PORTB, PB4);
+    // enable interrupts
+    sei();
 }
 
 void motorCallback(const std_msgs::UInt32& input)
 {
-    const u8 channelA[] = {M1A, M2A, M3A, M4A};
-    const u8 channelB[] = {M1B, M2B, M3B, M4B};
+    const u8 pwms[] = {M1PWM, M2PWM, M3PWM, M4PWM};
     static byte motorCtrl = 0;
     u32 data = input.data;
+
     //m1 m2 m3 m4 t1 t2 t3 t4 i1 i2 i3 i4
     // 2  2  2  2  2  2  2  2  4  4  4  4
     // stop   forward   backward    maintain
@@ -175,13 +203,15 @@ void motorCallback(const std_msgs::UInt32& input)
     for(int i = 0; i < 4; i++)
     {
         u8 c = (data >> (30 - 2*i)) & 0x03;
-        u8 gain = (data >> (12 - 4*i)) & 0x0f;
+        u8 gain = map((data >> (12 - 4*i)) & 0x0f, 0, 15, 0, 255);
         u8 interval = (data >> (22 - 2*i)) & 0x02;
 
         motorIntervals[i] = (interval == 0)*1
                           + (interval == 1)*5
                           + (interval == 2)*50
                           + (interval == 3)*200;
+        
+        digitalWrite((int)pwms[i], gain);
 
         switch(c)
         {
@@ -201,11 +231,35 @@ void motorCallback(const std_msgs::UInt32& input)
                 break;
         }
     }
+    motorShieldWrite(motorCtrl);
+    gotCtrlMessage = true;
 }
 
 // Arduino block
-void setup(){
+void setup()
+{
+    pinMode(pinCLK, OUTPUT);
+    pinMode(pinLTCH, OUTPUT);
+    pinMode(pinDS, OUTPUT);
+    pinMode(pinEnable, OUTPUT);
 
+    pinMode(M1PWM, OUTPUT);
+    pinMode(M2PWM, OUTPUT);
+    pinMode(M3PWM, OUTPUT);
+    pinMode(M4PWM, OUTPUT);
+
+    digitalWrite(pinEnable, LOW);
+
+    analogWrite(M1PWM, 0);
+    analogWrite(M2PWM, 0);
+    analogWrite(M3PWM, 0);
+    analogWrite(M4PWM, 0);
+
+    taskManager.rosbeefInit();
+
+    nh.initNode();
+    nh.advertise(pub);  // register the subscriber
+    nh.subscribe(sub);  // register the publisher
 }
 
 void loop()
