@@ -27,9 +27,9 @@
  * The mask size must be equal or smaller than the type,
  * it's safer to use a type with the same size
 */
-#define CLEARMASK(TYPE, MASK)    (TYPE) & ~(MASK)
-#define SETMASK(TYPE, MASK)      (TYPE) |  (MASK)
-#define FLIPMASK(TYPE, MASK)     (TYPE) ^  (MASK)
-#define CHECKMASK(TYPE, MASK)    (TYPE) &  (MASK)
+#define CLEARMASK(TYPE, MASK)    (TYPE) &= ~(MASK)
+#define SETMASK(TYPE, MASK)      (TYPE) |=  (MASK)
+#define FLIPMASK(TYPE, MASK)     (TYPE) ^=  (MASK)
+#define CHECKMASK(TYPE, MASK)    ((TYPE) & (MASK) == (MASK))
 
 #endif
