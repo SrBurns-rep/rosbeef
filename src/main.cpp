@@ -1,6 +1,6 @@
 /*********************************************************************
  * @file    main.cpp
- * @author  SrBurns <caiobl.25@gmail.com>
+ * @author  SrBurns
  * @date    2022/03/11
  * @brief   Arduino main process source file
 *********************************************************************/
@@ -153,8 +153,6 @@ void sendResponse()
     if(gotCtrlMessage){
         snprintf(buffer, sizeof buffer, "%lu,%u,%u,%u,%u", millis(),
         motorIntensities[0], motorIntensities[1], motorIntensities[2], motorIntensities[3]);
-        // ROS deve ter coisa pra isso
-        // Ver no firefox: ROS / rosserial
         msg.data = buffer;
         pub.publish(&msg);
         nh.spinOnce();
@@ -220,6 +218,7 @@ byte motorDecode(uint32_t data){
                           + (interval == 3)*200;
         motorIntensities[i] = gain;
 
+        // Change PWM only if it has to change
         if(c != MKEEP){
             digitalWrite(pwms[i], gain);
         }
