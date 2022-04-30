@@ -8,6 +8,7 @@
 
 // Includes
 #include <Arduino.h>
+#include <std_msgs/String.h>
 #include <std_msgs/UInt32.h>
 #include "rosbeef.h"
 
