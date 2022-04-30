@@ -57,12 +57,14 @@ void sendResponse();
 void shieldWrite(byte ctrlByte);
 void callback(const std_msgs::UInt32& input);
 byte motorDecode(uint32_t data);
+void keepAlive();
 // End of function prototypes
 
 task_t tasks[] = 
 {
     {0, MIN_INTERVAL, timeoutMotors},
-    {0, 200, sendResponse}
+    {0, 200, sendResponse},
+    {0, 2000, keepAlive}
 };
 
 // control messaging
@@ -71,11 +73,11 @@ bool gotCtrlMessage = false;
 // Ros nodes
 ros::NodeHandle nh;
 std_msgs::String msg;
-ros::Publisher pub("motor-response", &msg);
-ros::Subscriber<std_msgs::UInt32> sub("motor-input", callback);
+ros::Publisher pub("motorResponse", &msg);
+ros::Subscriber<std_msgs::UInt32> sub("motorPub", callback);
 
 // Task system object
-rosbeef taskManager(sizeof(tasks)/sizeof(*tasks));
+rosbeef taskManager(sizeof(tasks)/sizeof(tasks[0]));
 
 u32 motorTimer[4] = {0};
 u16 motorTimeleft[4] = {0};
@@ -112,11 +114,11 @@ void setup()
     analogWrite(M3PWM, 0);
     analogWrite(M4PWM, 0);
 
-    taskManager.rosbeefInit();
-
     nh.initNode();
     nh.advertise(pub);  // register the subscriber
     nh.subscribe(sub);  // register the publisher
+    
+    taskManager.rosbeefInit();
 }
 
 void loop()
@@ -245,4 +247,10 @@ byte motorDecode(uint32_t data){
         }
     }
     return motorCtrl;
+}
+
+void keepAlive(){
+    msg.data = "Hello world!";
+    pub.publish(&msg);
+    nh.spinOnce();
 }
