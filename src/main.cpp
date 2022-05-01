@@ -9,7 +9,7 @@
 #include <rosbeef.h>
 #include <std_msgs/UInt32.h>
 
-#define MESSAGE_INTERVAL 1000
+#define MESSAGE_INTERVAL 20000
 
 // Start of defines
     // function pins
@@ -249,7 +249,7 @@ byte motorDecode(uint32_t data){
 }
 
 void keepAlive(){
-	char hello[] = "Hello world!";
+	char hello[] = "Motor alive.";
     msg.data = hello;
     pub.publish(&msg);
     nh.spinOnce();
