@@ -2,4 +2,4 @@
 .vscode
 .ini
 /test
-/lib
+/lib/*
