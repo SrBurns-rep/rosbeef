@@ -58,6 +58,7 @@ void shieldWrite(byte ctrlByte);
 void callback(const std_msgs::UInt32& input);
 byte motorDecode(uint32_t data);
 void keepAlive();
+void spinFreq();
 // End of function prototypes
 
 // Create tasks
@@ -65,6 +66,7 @@ void keepAlive();
 task_t tasks[] = {
 	{0, MESSAGE_INTERVAL, keepAlive},
 	{0, MIN_INTERVAL, timeoutMotors},
+	{0, 200, spinFreq},
 	{0, 200, sendResponse}
 };
 
@@ -96,11 +98,8 @@ SIGNAL(TIMER0_COMPA_vect)
 }
 
 void setup()
-{
-	taskManager.rosbeefInit();
-	nh.initNode();
-	nh.subscribe(sub);
-	nh.advertise(pub);
+{	
+	taskManager.rosbeefInit();	
 	
 	pinMode(PIN_CLK, OUTPUT);
     pinMode(PIN_LTCH, OUTPUT);
@@ -118,6 +117,10 @@ void setup()
     analogWrite(M2PWM, 0);
     analogWrite(M3PWM, 0);
     analogWrite(M4PWM, 0);
+    
+	nh.initNode();
+	nh.subscribe(sub);
+	nh.advertise(pub);
 }
 
 void loop()
@@ -249,8 +252,15 @@ byte motorDecode(uint32_t data){
 }
 
 void keepAlive(){
-	char hello[] = "Motor alive.";
-    msg.data = hello;
+	char buff[32] = {0};
+	static u16 i = 0;
+	sprintf(buff, "Mottor connected %u.", i);
+	i++;
+    msg.data = buff;
     pub.publish(&msg);
     nh.spinOnce();
+}
+
+void spinFreq(){
+	nh.spinOnce();
 }
